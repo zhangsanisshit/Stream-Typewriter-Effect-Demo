@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import './StreamText.css';
 
 interface StreamTextProps {
@@ -16,24 +16,46 @@ export function StreamText({
 }: StreamTextProps) {
   const [displayedText, setDisplayedText] = useState('');
   const [isComplete, setIsComplete] = useState(false);
+  const [lastChar, setLastChar] = useState('');
+  const charKeyRef = useRef(0);
 
   const startTyping = useCallback(() => {
     setDisplayedText('');
+    setLastChar('');
     setIsComplete(false);
+    charKeyRef.current = 0;
 
     let currentIndex = 0;
-    const intervalId = setInterval(() => {
-      if (currentIndex < text.length) {
-        setDisplayedText(text.slice(0, currentIndex + 1));
-        currentIndex++;
-      } else {
-        clearInterval(intervalId);
-        setIsComplete(true);
-        onComplete?.();
-      }
-    }, speed);
+    let lastTime = 0;
+    let animationId: number;
 
-    return () => clearInterval(intervalId);
+    const animate = (timestamp: number) => {
+      if (!lastTime) lastTime = timestamp;
+      const elapsed = timestamp - lastTime;
+
+      if (elapsed >= speed) {
+        if (currentIndex < text.length) {
+          const newChar = text[currentIndex];
+          setDisplayedText(text.slice(0, currentIndex));
+          setLastChar(newChar);
+          charKeyRef.current++;
+          currentIndex++;
+          lastTime = timestamp;
+        } else {
+          setDisplayedText(text);
+          setLastChar('');
+          setIsComplete(true);
+          onComplete?.();
+          return;
+        }
+      }
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animationId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animationId);
   }, [text, speed, onComplete]);
 
   useEffect(() => {
@@ -44,6 +66,11 @@ export function StreamText({
   return (
     <span className="stream-text-container">
       <span className="stream-text-content">{displayedText}</span>
+      {lastChar && (
+        <span key={charKeyRef.current} className="stream-text-char">
+          {lastChar}
+        </span>
+      )}
       {!isComplete && (
         <span className="stream-text-cursor">
           <span className="cursor-bar" style={{ color: cursorColor }}>|</span>
