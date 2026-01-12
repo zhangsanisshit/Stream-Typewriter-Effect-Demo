@@ -17,7 +17,7 @@ const CURSOR_COLORS = [
 function App() {
   const [key, setKey] = useState(0);
   const [cursorColor, setCursorColor] = useState('#a855f7');
-  const [speed, setSpeed] = useState(200);
+  const [speed, setSpeed] = useState(50);
   const [isPlaying, setIsPlaying] = useState(true);
 
   const handleReplay = useCallback(() => {
